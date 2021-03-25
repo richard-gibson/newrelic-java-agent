@@ -1,4 +1,4 @@
-package com.nr.agent.instrumentation.scala.scratch
+package com.nr.agent.instrumentation.scala.baseline
 
 import com.newrelic.agent.introspec.{InstrumentationTestConfig, InstrumentationTestRunner, Introspector}
 import com.newrelic.api.agent.Trace
@@ -11,9 +11,9 @@ import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Futu
 
 @RunWith(classOf[InstrumentationTestRunner])
 @InstrumentationTestConfig(includePrefixes = Array("none"))
-class ScalaTransactionAsynchronousSingleThreadTest {
+class TransactionAsynchronousSingleThreadTest {
 
-  val singleThread: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
+  implicit val singleThread: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
 
   @Test
   def oneTransaction(): Unit = {
@@ -21,11 +21,11 @@ class ScalaTransactionAsynchronousSingleThreadTest {
     val introspector: Introspector = InstrumentationTestRunner.getIntrospector
 
     //When
-    val result = getFirstNumber.map(firstNumber => firstNumber)(singleThread)
+    val result = getFirstNumber.map(firstNumber => firstNumber)
 
     //Then
-    Assert.assertEquals(1, Await.result(result, 2.seconds))
-    Assert.assertEquals(1, introspector.getTransactionNames.size)
+    Assert.assertEquals("Result", 1, Await.result(result, 2.seconds))
+    Assert.assertEquals("Transactions", 1, introspector.getTransactionNames.size)
   }
 
   @Test
@@ -37,12 +37,12 @@ class ScalaTransactionAsynchronousSingleThreadTest {
     val result = getFirstNumber.flatMap(firstNumber =>
       getSecondNumber.map(secondNumber =>
         firstNumber + secondNumber
-      )(singleThread)
-    )(singleThread)
+      )
+    )
 
     //Then
-    Assert.assertEquals(3, Await.result(result, 2.seconds))
-    Assert.assertEquals(2, introspector.getTransactionNames.size)
+    Assert.assertEquals("Result", 3, Await.result(result, 2.seconds))
+    Assert.assertEquals("Transactions", 2, introspector.getTransactionNames.size)
   }
 
   @Test
@@ -55,30 +55,30 @@ class ScalaTransactionAsynchronousSingleThreadTest {
       getSecondNumber.flatMap(secondNumber =>
         getThirdNumber.map(thirdNumber =>
           firstNumber + secondNumber + thirdNumber
-        )(singleThread)
-      )(singleThread)
-    )(singleThread)
+        )
+      )
+    )
 
     //Then
-    Assert.assertEquals(6, Await.result(result, 2.seconds))
-    Assert.assertEquals(3, introspector.getTransactionNames.size)
+    Assert.assertEquals("Result", 6, Await.result(result, 2.seconds))
+    Assert.assertEquals("Transactions", 3, introspector.getTransactionNames.size)
   }
 
   @Trace(dispatcher = true)
   def getFirstNumber: Future[Int] = Future {
     println(s"${Thread.currentThread.getName}: getFirstNumber")
     1
-  }(singleThread)
+  }
 
   @Trace(dispatcher = true)
   def getSecondNumber: Future[Int] = Future {
     println(s"${Thread.currentThread.getName}: getSecondNumber")
     2
-  }(singleThread)
+  }
 
   @Trace(dispatcher = true)
   def getThirdNumber: Future[Int] = Future {
     println(s"${Thread.currentThread.getName}: getThirdNumber")
     3
-  }(singleThread)
+  }
 }

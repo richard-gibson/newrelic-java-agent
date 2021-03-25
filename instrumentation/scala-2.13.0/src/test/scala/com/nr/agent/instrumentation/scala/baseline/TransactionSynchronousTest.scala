@@ -1,4 +1,4 @@
-package com.nr.agent.instrumentation.scala.scratch
+package com.nr.agent.instrumentation.scala.baseline
 
 import com.newrelic.agent.introspec.{InstrumentationTestConfig, InstrumentationTestRunner, Introspector}
 import com.newrelic.api.agent.Trace
@@ -7,7 +7,7 @@ import org.junit.{Assert, Test}
 
 @RunWith(classOf[InstrumentationTestRunner])
 @InstrumentationTestConfig(includePrefixes = Array("none"))
-class ScalaTransactionSynchronousTest {
+class TransactionSynchronousTest {
 
   @Test
   def oneTransaction(): Unit = {
@@ -19,8 +19,8 @@ class ScalaTransactionSynchronousTest {
     val result = firstNumber
 
     //Then
-    Assert.assertEquals(1, result)
-    Assert.assertEquals(1, introspector.getTransactionNames.size)
+    Assert.assertEquals("Result", 1, result)
+    Assert.assertEquals("Transactions", 1, introspector.getTransactionNames.size)
   }
 
   @Test
@@ -34,8 +34,8 @@ class ScalaTransactionSynchronousTest {
     val result = firstNumber + secondNumber
 
     //Then
-    Assert.assertEquals(3, result)
-    Assert.assertEquals(2, introspector.getTransactionNames.size)
+    Assert.assertEquals("Result", 3, result)
+    Assert.assertEquals("Transactions", 2, introspector.getTransactionNames.size)
   }
 
   @Test
@@ -50,8 +50,8 @@ class ScalaTransactionSynchronousTest {
     val result = firstNumber + secondNumber + thirdNumber
 
     //Then
-    Assert.assertEquals(6, result)
-    Assert.assertEquals(3, introspector.getTransactionNames.size)
+    Assert.assertEquals("Result", 6, result)
+    Assert.assertEquals("Transactions", 3, introspector.getTransactionNames.size)
   }
 
   @Trace(dispatcher = true)

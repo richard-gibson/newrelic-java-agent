@@ -1,4 +1,4 @@
-package com.nr.agent.instrumentation.scala.scratch
+package com.nr.agent.instrumentation.scala.baseline
 
 import com.newrelic.agent.introspec.{InstrumentationTestConfig, InstrumentationTestRunner, Introspector}
 import com.newrelic.api.agent.Trace
@@ -11,7 +11,7 @@ import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Futu
 
 @RunWith(classOf[InstrumentationTestRunner])
 @InstrumentationTestConfig(includePrefixes = Array("none"))
-class ScalaTransactionAsynchronousMultipleThreadTest {
+class TransactionAsynchronousMultipleThreadTest {
 
   val threadPoolOne: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))
   val threadPoolTwo: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))
@@ -21,49 +21,52 @@ class ScalaTransactionAsynchronousMultipleThreadTest {
   def oneTransaction(): Unit = {
     //Given
     val introspector: Introspector = InstrumentationTestRunner.getIntrospector
+    implicit val ec: ExecutionContext = threadPoolOne
 
     //When
-    val result = getFirstNumber.map(firstNumber => firstNumber)(threadPoolOne)
+    val result = getFirstNumber.map(firstNumber => firstNumber)
 
     //Then
-    Assert.assertEquals(1, Await.result(result, 2.seconds))
-    Assert.assertEquals(1, introspector.getTransactionNames.size)
+    Assert.assertEquals("Result", 1, Await.result(result, 2.seconds))
+    Assert.assertEquals("Transactions", 1, introspector.getTransactionNames.size)
   }
 
   @Test
   def twoTransactions(): Unit = {
     //Given
     val introspector: Introspector = InstrumentationTestRunner.getIntrospector
+    implicit val ec: ExecutionContext = threadPoolOne
 
     //When
     val result = getFirstNumber.flatMap(firstNumber =>
       getSecondNumber.map(secondNumber =>
         firstNumber + secondNumber
-      )(threadPoolTwo)
-    )(threadPoolOne)
+      )
+    )
 
     //Then
-    Assert.assertEquals(3, Await.result(result, 2.seconds))
-    Assert.assertEquals(2, introspector.getTransactionNames.size)
+    Assert.assertEquals("Result", 3, Await.result(result, 2.seconds))
+    Assert.assertEquals("Transactions", 2, introspector.getTransactionNames.size)
   }
 
   @Test
   def threeTransactions(): Unit = {
     //Given
     val introspector: Introspector = InstrumentationTestRunner.getIntrospector
+    implicit val ec: ExecutionContext = threadPoolOne
 
     //When
     val result = getFirstNumber.flatMap(firstNumber =>
       getSecondNumber.flatMap(secondNumber =>
         getThirdNumber.map(thirdNumber =>
           firstNumber + secondNumber + thirdNumber
-        )(threadPoolThree)
-      )(threadPoolTwo)
-    )(threadPoolOne)
+        )
+      )
+    )
 
     //Then
-    Assert.assertEquals(6, Await.result(result, 2.seconds))
-    Assert.assertEquals(3, introspector.getTransactionNames.size)
+    Assert.assertEquals("Result", 6, Await.result(result, 2.seconds))
+    Assert.assertEquals("Transactions", 3, introspector.getTransactionNames.size)
   }
 
   @Trace(dispatcher = true)
