@@ -13,13 +13,13 @@ class TransactionNestedSynchronousTest {
   @Test
   def oneNestedTransaction(): Unit = {
     //Given
-    implicit val introspector: Introspector = InstrumentationTestRunner.getIntrospector
+    val introspector: Introspector = InstrumentationTestRunner.getIntrospector
 
     //When
     val result = getOneResult
 
     //Then
-    val traces = getTraces()
+    val traces = getTraces(introspector)
     val segments = getSegments(traces)
 
     Assert.assertEquals("Result", 1, result)
@@ -31,13 +31,13 @@ class TransactionNestedSynchronousTest {
   @Test
   def twoNestedTransactions(): Unit = {
     //Given
-    implicit val introspector: Introspector = InstrumentationTestRunner.getIntrospector
+    val introspector: Introspector = InstrumentationTestRunner.getIntrospector
 
     //When
     val result = getTwoResults
 
     //Then
-    val traces = getTraces()
+    val traces = getTraces(introspector)
     val segments = getSegments(traces)
 
     Assert.assertEquals("Result", 3, result)
@@ -49,13 +49,13 @@ class TransactionNestedSynchronousTest {
   @Test
   def threeNestedTransactions(): Unit = {
     //Given
-    implicit val introspector: Introspector = InstrumentationTestRunner.getIntrospector
+    val introspector: Introspector = InstrumentationTestRunner.getIntrospector
 
     //When
     val result = getThreeResults
 
     //Then
-    val traces = getTraces()
+    val traces = getTraces(introspector)
     val segments = getSegments(traces)
 
     Assert.assertEquals("Result", 6, result)

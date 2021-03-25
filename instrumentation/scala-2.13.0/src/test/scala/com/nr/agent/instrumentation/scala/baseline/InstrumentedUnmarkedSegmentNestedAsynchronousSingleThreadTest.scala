@@ -20,15 +20,15 @@ class InstrumentedUnmarkedSegmentNestedAsynchronousSingleThreadTest {
   @Test
   def oneNestedTransaction(): Unit = {
     //Given
-    implicit val introspector: Introspector = InstrumentationTestRunner.getIntrospector
+    val introspector: Introspector = InstrumentationTestRunner.getIntrospector
 
     //When
     val result = getOneResult
 
     //Then
-    Await.result(finishedTransactionCollection(), 10.seconds)
+    Await.result(finishedTransactionCollection(introspector), 10.seconds)
 
-    val traces = getTraces()
+    val traces = getTraces(introspector)
     val segments = getSegments(traces)
 
     Assert.assertEquals("Result", 1, Await.result(result, 2.seconds))
@@ -40,15 +40,15 @@ class InstrumentedUnmarkedSegmentNestedAsynchronousSingleThreadTest {
   @Test
   def twoNestedTransactions(): Unit = {
     //Given
-    implicit val introspector: Introspector = InstrumentationTestRunner.getIntrospector
+    val introspector: Introspector = InstrumentationTestRunner.getIntrospector
 
     //When
     val result = getTwoResults
 
     //Then
-    Await.result(finishedTransactionCollection(), 10.seconds)
+    Await.result(finishedTransactionCollection(introspector), 10.seconds)
 
-    val traces = getTraces()
+    val traces = getTraces(introspector)
     val segments = getSegments(traces)
 
     Assert.assertEquals("Result", 3, Await.result(result, 2.seconds))
@@ -60,15 +60,15 @@ class InstrumentedUnmarkedSegmentNestedAsynchronousSingleThreadTest {
   @Test
   def threeNestedTransactions(): Unit = {
     //Given
-    implicit val introspector: Introspector = InstrumentationTestRunner.getIntrospector
+    val introspector: Introspector = InstrumentationTestRunner.getIntrospector
 
     //When
     val result = getThreeResults
 
     //Then
-    Await.result(finishedTransactionCollection(), 10.seconds)
+    Await.result(finishedTransactionCollection(introspector), 10.seconds)
 
-    val traces = getTraces()
+    val traces = getTraces(introspector)
     val segments = getSegments(traces)
 
     Assert.assertEquals("Result", 6, Await.result(result, 2.seconds))
