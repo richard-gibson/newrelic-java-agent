@@ -9,57 +9,24 @@ package akka.http.scaladsl
 
 import akka.NotUsed
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
-import akka.stream.FlowShape
-import akka.stream.scaladsl.{Flow, GraphDSL, Unzip, Zip}
+import akka.stream.{FlowShape, Materializer}
+import akka.stream.scaladsl.{Flow, GraphDSL, Sink, Source, Unzip, Zip}
 import com.newrelic.agent.bridge.{AgentBridge, Token, TransactionNamePriority}
 import com.newrelic.api.agent.weaver.Weaver
 import com.newrelic.api.agent.{NewRelic, Trace}
 import com.nr.instrumentation.akkahttpcore.{RequestWrapper, ResponseWrapper}
 
+import scala.concurrent.{ExecutionContext, Future}
+
 
 object FlowRequestHandler {
 
-  val transactionCategory: String = "AkkaHttpCore"
 
-  def instrumentFlow[Mat](handlerFlow: Flow[HttpRequest, HttpResponse, _]): Flow[HttpRequest, HttpResponse, _] =
-    Flow.fromGraph(
-      GraphDSL.create() { implicit builder =>
-        import GraphDSL.Implicits._
+  def instrumentFlow[Mat](handlerFlow: Flow[HttpRequest, HttpResponse, Any], mat: Materializer)
+  : Flow[HttpRequest, HttpResponse, Any] =
+    Flow[HttpRequest].mapAsync(1)(new AsyncRequestHandler(toAsyncFunc(handlerFlow)(mat))(mat.executionContext))
 
-        val enrichedInFlowShape = builder.add(Flow[HttpRequest].map(req => (createToken(req), req)))
-        val removedOutFlowShape = builder.add(Flow[(Option[Token], HttpResponse)].map { case (optToken, resp) =>
-          optToken.map(tkn => ResponseWrapper.wrapResponse(tkn, resp))
-                  .getOrElse(resp)
-        })
+  def toAsyncFunc[I, O](flow: Flow[I, O, _])(implicit mat: Materializer) : I => Future[O] =
+    i => Source.single(i).via(flow).runWith(Sink.head)
 
-        val unzip = builder.add(Unzip[Option[Token], HttpRequest]())
-        val zip = builder.add(Zip[Option[Token], HttpResponse]())
-        val instrumentedFlow = builder.add(handlerFlow)
-
-        enrichedInFlowShape ~> unzip.in
-        unzip.out0 ~> zip.in0
-        unzip.out1 ~> instrumentedFlow ~> zip.in1
-        zip.out ~> removedOutFlowShape
-
-        FlowShape(enrichedInFlowShape.in, removedOutFlowShape.out)
-      }
-    )
-
-
-  @Trace(dispatcher = true)
-  private def createToken(param: HttpRequest): Option[Token] = {
-    try {
-      val token = AgentBridge.getAgent.getTransaction.getToken
-      AgentBridge.getAgent.getTransaction.setTransactionName(TransactionNamePriority.SERVLET_NAME, true, transactionCategory, "akkaHandler")
-      NewRelic.getAgent.getTracedMethod.setMetricName("Akka", "RequestHandler")
-
-      val wrappedRequest: RequestWrapper = new RequestWrapper(param)
-      NewRelic.getAgent.getTransaction.setWebRequest(wrappedRequest)
-      Some(token)
-    } catch {
-      case t: Throwable =>
-        AgentBridge.instrumentation.noticeInstrumentationError(t, Weaver.getImplementationTitle)
-        None
-    }
-  }
 }

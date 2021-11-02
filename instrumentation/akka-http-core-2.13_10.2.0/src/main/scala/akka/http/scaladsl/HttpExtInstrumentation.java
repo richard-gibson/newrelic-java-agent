@@ -33,11 +33,11 @@ public class HttpExtInstrumentation {
         return Weaver.callOriginal();
     }
 
-    public Future<HttpInstrumentation.ServerBinding> bindAndHandle(Flow<HttpRequest, HttpResponse, ?> handler,
+    public Future<HttpInstrumentation.ServerBinding> bindAndHandle(Flow<HttpRequest, HttpResponse, Object> handler,
                                                                    String _interface,
                                                                    int port, ConnectionContext connectionContext,
                                                                    ServerSettings settings, LoggingAdapter log, Materializer fm) {
-        handler = FlowRequestHandler$.MODULE$.instrumentFlow(handler);
+        handler = FlowRequestHandler$.MODULE$.instrumentFlow(handler, fm);
         return Weaver.callOriginal();
     }
 

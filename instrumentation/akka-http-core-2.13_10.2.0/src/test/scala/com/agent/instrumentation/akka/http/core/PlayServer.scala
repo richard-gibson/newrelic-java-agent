@@ -47,13 +47,12 @@ class PlayServer() {
   }
 
   def startFromFlow(port: Int) = {
-    val routeFlow: Flow[HttpRequest, HttpResponse, _] = Route.handlerFlow(
+    val routeFlow =
       path("ping") {
         get(onSuccess(Future("Hoops"))(complete(_)))
       }
-    )
-    bindingFuture = Http()
-      .bindAndHandle(routeFlow, "localhost", port)
+
+    bindingFuture = Http().newServerAt("localhost", port).bindFlow(routeFlow)
     Await.ready(bindingFuture, timeout.duration)
   }
 

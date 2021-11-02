@@ -4,7 +4,6 @@ import cats.effect.Sync
 import cats.implicits._
 import com.newrelic.agent.bridge.{AgentBridge, ExitTracer, Transaction}
 
-
 import java.util.concurrent.atomic.AtomicInteger
 
 object Util {
@@ -12,6 +11,7 @@ object Util {
   def wrapTrace[S, F[_]: Sync](body: F[S]): F[S] =
     Sync[F].delay{
       val tracer = AgentBridge.instrumentation.createScalaTxnTracer()
+      println(s"tracer: $tracer")
       tracer
     }.redeemWith(
         _ => body,
@@ -20,7 +20,12 @@ object Util {
           _ <- setupTokenAndRefCount(txn)
           res <- attachErrorEvent(body, tracer)
           _ <- cleanupTxnAndTokenRefCount(txn)
-          _ <- Sync[F].delay(tracer.finish(RETURN_OPCODE, null))
+          _ <- Sync[F].delay{
+            if (tracer != null)
+              tracer.finish(RETURN_OPCODE, null)
+            else
+              println("tracer null!!!")
+          }
         } yield res
       )
 
@@ -40,10 +45,12 @@ object Util {
   }
 
   private def cleanupTxnAndTokenRefCount[F[_]: Sync](txn: Transaction): F[Unit] = Sync[F].delay{
-    val tokenAndRefCount = AgentBridge.activeToken.get()
-    if (tokenAndRefCount != null) {
+    println(s"cleanupTxnAndTokenRefCount $txn")
+    if (AgentBridge.activeToken != null) {
       AgentBridge.activeToken.remove()
     }
-    txn.expireAllTokens()
+    if(txn != null) {
+      txn.expireAllTokens()
+    }
   }
 }
